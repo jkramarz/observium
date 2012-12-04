@@ -1,0 +1,210 @@
+Index: includes/discovery/temperatures/nut.inc.php
+===================================================================
+--- includes/discovery/temperatures/nut.inc.php	(revision 0)
++++ includes/discovery/temperatures/nut.inc.php	(revision 0)
+@@ -0,0 +1,18 @@
++<?php
++
++## NUT UPS temperature
++if ($device['os'] == "linux")
++{
++  $nut_num_lines = snmp_get($device, 'nsExtendOutNumLines.3.110.117.116',  "-Oqv", "NET-SNMP-EXTEND-MIB");
++  $nut_num_dev = ($nut_num_lines - 1) / 8;
++  if ($nut_num_dev > 0) echo("NUT ");
++  for($i = 0; $i < $nut_num_dev; $i++){
++    $nut_dev_name = snmp_get($device, 'nsExtendOutLine.3.110.117.116.'.(2+($i)*8), "-Oqv", "NET-SNMP-EXTEND-MIB");
++    #ups.temperature
++    $nut_ups_temperature = snmp_get($device, 'nsExtendOutLine.3.110.117.116.'.(9+($i)*8), "-Oqv", "NET-SNMP-EXTEND-MIB");
++    if($nut_ups_temperature != -1)
++      discover_sensor($valid['sensor'], 'frequency', $device, 'nsExtendOutLine.3.110.117.116.'.(9+($i)*8), ($i), 'nut', $nut_dev_name.': input frequency', 1, '1', NULL, NULL, NULL, NULL, $nut_ups_temperature);
++  }    
++}
++
++?>
+Index: includes/discovery/frequencies/nut.inc.php
+===================================================================
+--- includes/discovery/frequencies/nut.inc.php	(revision 0)
++++ includes/discovery/frequencies/nut.inc.php	(revision 0)
+@@ -0,0 +1,18 @@
++<?php
++
++## NUT Frequency
++if ($device['os'] == "linux")
++{
++  $nut_num_lines = snmp_get($device, 'nsExtendOutNumLines.3.110.117.116',  "-Oqv", "NET-SNMP-EXTEND-MIB");
++  $nut_num_dev = ($nut_num_lines - 1) / 8;
++  if ($nut_num_dev > 0) echo("NUT ");
++  for($i = 0; $i < $nut_num_dev; $i++){
++    $nut_dev_name = snmp_get($device, 'nsExtendOutLine.3.110.117.116.'.(2+($i)*8), "-Oqv", "NET-SNMP-EXTEND-MIB");
++    #input.frequency
++    $nut_input_frequency = snmp_get($device, 'nsExtendOutLine.3.110.117.116.'.(7+($i)*8), "-Oqv", "NET-SNMP-EXTEND-MIB");
++    if($nut_input_frequency != -1)
++      discover_sensor($valid['sensor'], 'frequency', $device, 'nsExtendOutLine.3.110.117.116.'.(7+($i)*8), ($i), 'nut', $nut_dev_name.': input frequency', 1, '1', NULL, NULL, NULL, NULL, $nut_input_frequency);
++  }    
++}
++
++?>
+Index: includes/discovery/voltages/nut.inc.php
+===================================================================
+--- includes/discovery/voltages/nut.inc.php	(revision 0)
++++ includes/discovery/voltages/nut.inc.php	(revision 0)
+@@ -0,0 +1,22 @@
++<?php
++
++## NUT Voltages
++if ($device['os'] == "linux")
++{
++  $nut_num_lines = snmp_get($device, 'nsExtendOutNumLines.3.110.117.116',  "-Oqv", "NET-SNMP-EXTEND-MIB");
++  $nut_num_dev = ($nut_num_lines - 1) / 8;
++  if ($nut_num_dev > 0) echo("NUT ");
++  for($i = 0; $i < $nut_num_dev; $i++){
++    $nut_dev_name = snmp_get($device, 'nsExtendOutLine.3.110.117.116.'.(2+($i)*8), "-Oqv", "NET-SNMP-EXTEND-MIB");
++    #battery.voltage
++    $nut_current_battery = snmp_get($device, 'nsExtendOutLine.3.110.117.116.'.(5+($i)*8), "-Oqv", "NET-SNMP-EXTEND-MIB");
++    if($nut_current_battery != -1)
++      discover_sensor($valid['sensor'], 'voltage', $device, 'nsExtendOutLine.3.110.117.116.'.(5+($i)*8), ($i*2), 'nut', $nut_dev_name.': battery voltage', 1, '1', NULL, NULL, NULL, NULL, $nut_current_battery);
++    #input.voltage
++    $nut_current_input = snmp_get($device, 'nsExtendOutLine.3.110.117.116.'.(6+($i)*8), "-Oqv", "NET-SNMP-EXTEND-MIB");
++    if($nut_current_input != -1)
++      discover_sensor($valid['sensor'], 'voltage', $device, 'nsExtendOutLine.3.110.117.116.'.(6+($i)*8), (($i*2)+1), 'nut', $nut_dev_name.': input voltage', 1, '1', NULL, NULL, NULL, NULL, $nut_current_input);
++  }    
++}
++
++?>
+Index: includes/discovery/power/nut.inc.php
+===================================================================
+--- includes/discovery/power/nut.inc.php	(revision 0)
++++ includes/discovery/power/nut.inc.php	(revision 0)
+@@ -0,0 +1,22 @@
++<?php
++
++## NUT battery charge and ups load
++if ($device['os'] == "linux")
++{
++  $nut_num_lines = snmp_get($device, 'nsExtendOutNumLines.3.110.117.116',  "-Oqv", "NET-SNMP-EXTEND-MIB");
++  $nut_num_dev = ($nut_num_lines - 1) / 8;
++  if ($nut_num_dev > 0) echo("NUT ");
++  for($i = 0; $i < $nut_num_dev; $i++){
++    $nut_dev_name = snmp_get($device, 'nsExtendOutLine.3.110.117.116.'.(2+($i)*8), "-Oqv", "NET-SNMP-EXTEND-MIB");
++    #battery.charge
++    $nut_battery_charge = snmp_get($device, 'nsExtendOutLine.3.110.117.116.'.(4+($i)*8), "-Oqv", "NET-SNMP-EXTEND-MIB");
++    if($nut_battery_charge != -1)
++      discover_sensor($valid['sensor'], 'power', $device, 'nsExtendOutLine.3.110.117.116.'.(4+($i)*8), ($i), 'nut', $nut_dev_name.': battery charge', 1, '1', NULL, NULL, NULL, NULL, $nut_battery_charge);
++    #ups.load
++    $nut_ups_load = snmp_get($device, 'nsExtendOutLine.3.110.117.116.'.(8+($i)*8), "-Oqv", "NET-SNMP-EXTEND-MIB");
++    if($nut_ups_load != -1)
++      discover_sensor($valid['sensor'], 'power', $device, 'nsExtendOutLine.3.110.117.116.'.(8+($i)*8), ($i), 'nut', $nut_dev_name.': ups load', 1, '1', NULL, NULL, NULL, NULL, $nut_ups_load);
++  }    
++}
++
++?>
+Index: includes/polling/voltages.inc.php
+===================================================================
+--- includes/polling/voltages.inc.php	(revision 2268)
++++ includes/polling/voltages.inc.php	(working copy)
+@@ -9,9 +9,8 @@
+ while ($sensor = mysql_fetch_assoc($sensor_data))
+ {
+   echo("Checking voltage " . $sensor['sensor_descr'] . "... ");
++  $sensor_value = snmp_get($device, $sensor['sensor_oid'], "-OUqnv", get_mib($sensor['sensor_oid']));
+ 
+-  $sensor_value = snmp_get($device, $sensor['sensor_oid'], "-OUqnv", "SNMPv2-MIB");
+-
+   if ($sensor['sensor_divisor'])    { $sensor_value = $sensor_value / $sensor['sensor_divisor']; }
+   if ($sensor['sensor_multiplier']) { $sensor_value = $sensor_value * $sensor['sensor_multiplier']; }
+ 
+Index: includes/polling/functions.inc.php
+===================================================================
+--- includes/polling/functions.inc.php	(revision 2268)
++++ includes/polling/functions.inc.php	(working copy)
+@@ -1,4 +1,15 @@
+ <?php
++function get_mib($oid){
++  if(strpos($oid, 'nsExtend') !== false)
++  {
++    $mib = "NET-SNMP-EXTEND-MIB";
++  }
++  else
++  {
++    $mib = "SNMPv2-MIB";
++  }
++  return $mib;
++}
+ 
+ function poll_sensor($device, $class, $unit)
+ {
+@@ -11,7 +22,7 @@
+   {
+     echo("Checking $class " . $sensor['sensor_descr'] . "... ");
+ 
+-    $sensor_value = snmp_get($device, $sensor['sensor_oid'], "-OUqnv", "SNMPv2-MIB");
++    $sensor_value = snmp_get($device, $sensor['sensor_oid'], "-OUqnv", get_mib($sensor['sensor_oid']));
+ 
+     if ($sensor['sensor_divisor'])    { $sensor_value = $sensor_value / $sensor['sensor_divisor']; }
+     if ($sensor['sensor_multiplier']) { $sensor_value = $sensor_value * $sensor['sensor_multiplier']; }
+Index: includes/polling/temperatures.inc.php
+===================================================================
+--- includes/polling/temperatures.inc.php	(revision 2268)
++++ includes/polling/temperatures.inc.php	(working copy)
+@@ -13,7 +13,7 @@
+   for ($i = 0;$i < 5;$i++) # Try 5 times to get a valid temp reading
+   {
+     if ($debug) echo("Attempt $i ");
+-    $sensor_value = snmp_get($device, $sensor['sensor_oid'], "-OUqnv", "SNMPv2-MIB");
++    $sensor_value = snmp_get($device, $sensor['sensor_oid'], "-OUqnv", get_mib($sensor['sensor_oid']));
+     $sensor_value = trim(str_replace("\"", "", $sensor_value));
+ 
+     if ($sensor_value != 9999) break; # TME sometimes sends 999.9 when it is right in the middle of an update;
+Index: scripts/nut.py
+===================================================================
+--- scripts/nut.py	(revision 0)
++++ scripts/nut.py	(revision 0)
+@@ -0,0 +1,48 @@
++#!/usr/bin/env python
++# Jakub Kramarz <lenwe@lenwe.net>
++#
++# Four steps to get it working with SNMP:
++# 1. copy script to monitored server, make it executable
++# 2. add "extend  nut  /usr/local/bin/nut.py" to snmpd.conf
++# 3. check is nut connection parameters correct (eg. using "telnet localhost 3493")
++#    if not, check upsd config or change them in "config" variable in script
++# 4. restart snmpd
++#
++
++import re
++import telnetlib
++config = {
++	'host': 'localhost',
++	'port': '3493',
++	}
++
++
++connection = telnetlib.Telnet(config['host'], config['port'])
++connection.write("LIST UPS\n")
++
++request = ["battery.charge", "battery.voltage", "input.voltage", "input.frequency", "ups.load", "ups.temperature"]
++ups = []
++while 1:
++	data = connection.read_until("\n")
++	if("BEGIN" in data):
++		continue
++	search = re.finditer('^UPS (?P<device>[A-Za-z0-9]*) "(?P<description>[A-Za-z0-9 ]*)"$', data, (re.MULTILINE|re.DOTALL))
++	for result in search:
++		ups.append(result.groupdict())
++	if("END" in data):
++		break
++for dev in ups:
++	for q in request:
++		connection.write("GET VAR " + dev['device'] + " " + q + "\n")
++		data = connection.read_until("\n")
++		search = re.search('"(?P<value>[0-9\.]*)"', data)
++		if(search != None):
++			dev[q] = search.groupdict()['value']
++		else:
++			dev[q] = "-1"
++connection.close()
++print "UPS"
++for dev in ups:
++	for i in ['device', 'description'] + request:
++		print dev[i]
++

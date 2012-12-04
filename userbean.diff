@@ -1,0 +1,213 @@
+Index: includes/polling/applications/OpenVZ-user_beancounters.inc.php
+===================================================================
+--- includes/polling/applications/OpenVZ-user_beancounters.inc.php	(revision 0)
++++ includes/polling/applications/OpenVZ-user_beancounters.inc.php	(revision 0)
+@@ -0,0 +1,60 @@
++<?php
++
++#Polls OpenVZ user_beancounters over SNMP
++
++echo(" OpenVZ...");
++
++$userbean_rrd  = $config['rrd_dir'] . "/" . $device['hostname'] . "/app-userbean-".$app['app_id'].".rrd";
++$userbean_cmd  = $config['snmpget'] ." -m NET-SNMP-EXTEND-MIB -O qv -" . $device['snmpver'] . " -c " . $device['community'] . " " . $device['hostname'].":".$device['port'];
++$userbean_cmd .= " nsExtendOutputFull.8.117.115.101.114.98.101.97.110";
++
++$userbean  = shell_exec($userbean_cmd);
++
++
++$userbean = explode("\n", $userbean);
++array_shift($userbean);
++
++for($i=0; $i<20; $i++)
++  $nstring .= $userbean[(1+($i*6))].':';
++
++if (!is_file($userbean_rrd))
++{
++  rrdtool_create ($userbean_rrd, "--step 300 \
++	DS:kmemsize:GAUGE:600:0:125000000000 \
++	DS:lockedpages:GAUGE:600:0:125000000000 \
++	DS:privvmpages:GAUGE:600:0:125000000000 \
++	DS:shmpages:GAUGE:600:0:125000000000 \
++	DS:numproc:GAUGE:600:0:125000000000 \
++	DS:physpages:GAUGE:600:0:125000000000 \
++	DS:vmguarpages:GAUGE:600:0:125000000000 \
++	DS:oomguarpages:GAUGE:600:0:125000000000 \
++	DS:numtcpsock:GAUGE:600:0:125000000000 \
++	DS:numflock:GAUGE:600:0:125000000000 \
++	DS:numpty:GAUGE:600:0:125000000000 \
++	DS:numsiginfo:GAUGE:600:0:125000000000 \
++	DS:tcpsndbuf:GAUGE:600:0:125000000000 \
++	DS:tcprcvbuf:GAUGE:600:0:125000000000 \
++	DS:othersockbuf:GAUGE:600:0:125000000000 \
++	DS:dgramrcvbuf:GAUGE:600:0:125000000000 \
++	DS:numothersock:GAUGE:600:0:125000000000 \
++	DS:dcachesize:GAUGE:600:0:125000000000 \
++	DS:numfile:GAUGE:600:0:125000000000 \
++	DS:numiptent:GAUGE:600:0:125000000000 \
++	RRA:AVERAGE:0.5:1:600 \
++	RRA:AVERAGE:0.5:6:700 \
++	RRA:AVERAGE:0.5:24:775 \
++	RRA:AVERAGE:0.5:288:797 \
++	RRA:MIN:0.5:1:600 \
++	RRA:MIN:0.5:6:700 \
++	RRA:MIN:0.5:24:775 \
++	RRA:MIN:0.5:3:600 \
++	RRA:MAX:0.5:1:600 \
++	RRA:MAX:0.5:6:700 \
++	RRA:MAX:0.5:24:775 \
++	RRA:MAX:0.5:288:797");
++}
++
++rrdtool_update($userbean_rrd, "N:$nstring");
++echo("done ");
++
++?>
+Index: html/includes/graphs/application/userbean.inc.php
+===================================================================
+--- html/includes/graphs/application/userbean.inc.php	(revision 0)
++++ html/includes/graphs/application/userbean.inc.php	(revision 0)
+@@ -0,0 +1,62 @@
++<?php
++include("includes/graphs/common.inc.php");
++
++function ffill($string){
++	$temp = $string;
++	for($i = strlen($string); $i <= 12; $i++)
++		$temp .= ' ';
++	return $temp;
++}
++
++$counters = array(
++  'kmemsize',
++  'lockedpages',
++  'privvmpages',
++  'shmpages',
++  'numproc',
++  'physpages',
++  'vmguarpages',
++  'oomguarpages',
++  'numtcpsock',
++  'numflock',
++  'numpty',
++  'numsiginfo',
++  'tcpsndbuf',
++  'tcprcvbuf',
++  'othersockbuf',
++  'dgramrcvbuf',
++  'numothersock',
++  'dcachesize',
++  'numfile',
++  'numiptent'
++);
++
++$mysql_rrd = $config['rrd_dir'] . "/" . $device['hostname'] . "/app-userbean-".$app['app_id'].".rrd";
++
++if (is_file($mysql_rrd))
++{
++  $rrd_filename = $mysql_rrd;
++}
++
++$rrd_options .= ' -b 1024 '; 
++
++foreach($counters as $counter)
++{
++  $rrd_options .= ' DEF:'.$counter.'='.$rrd_filename.':'.$counter.':AVERAGE ';
++}
++
++$rrd_options .= 'COMMENT:"                 Current    Average   Maximum\n" ';
++
++$colors = array();
++foreach($config['graph_colours'] as $c)
++{
++  $colors = array_merge($colors, $c);
++}
++
++foreach($counters as $counter){
++  $rrd_options .= 'LINE2:'.$counter.'#'.$colors[(++$i<count($colors)?$i:$i=0)].':"'.ffill($counter).'"\ \     ';
++  $rrd_options .= 'GPRINT:'.$counter.':LAST:"%5.2lf %s"  ';
++  $rrd_options .= 'GPRINT:'.$counter.':AVERAGE:"%5.2lf %s"  ';
++  $rrd_options .= 'GPRINT:'.$counter.':MAX:"%5.2lf %s\n"  ';
++}
++?>
+
+Property changes on: html/includes/graphs/application/userbean.inc.php
+___________________________________________________________________
+Added: svn:executable
+   + *
+
+Index: html/pages/device/apps/OpenVZ-user_beancounters.inc.php
+===================================================================
+--- html/pages/device/apps/OpenVZ-user_beancounters.inc.php	(revision 0)
++++ html/pages/device/apps/OpenVZ-user_beancounters.inc.php	(revision 0)
+@@ -0,0 +1,22 @@
++<?php
++global $config;
++
++$graphs = array('userbean' => 'OpenVZ user beancounters');
++
++foreach ($graphs as $key => $text)
++{
++  $graph_type = $key;
++  $graph_array['height'] = "100";
++  $graph_array['width']  = "215";
++  $graph_array['to']     = $now;
++  $graph_array['id']     = $app['app_id'];
++  $graph_array['type']   = "application_".$key;
++  echo('<h3>'.$text.'</h3>');
++
++  echo("<tr bgcolor='$row_colour'><td colspan=5>");
++
++  include("includes/print-quadgraphs.inc.php");
++  echo("</td></tr>");
++}
++
++?>
+Index: scripts/userbean.py
+===================================================================
+--- scripts/userbean.py	(revision 0)
++++ scripts/userbean.py	(revision 0)
+@@ -0,0 +1,37 @@
++#!/usr/bin/env python
++# Jakub Kramarz <lenwe@lenwe.net>
++#
++# Four steps to get it working with SNMP:
++# 1. copy script to monitored container, make it executable
++# 2. add "extend  userbean  /usr/local/bin/userbean.py" to snmpd.conf
++# 3. if SNMP is running other user then root, you MUST use beanc from http://www.labradordata.ca/home/35
++# 4. restart snmpd
++#
++
++import re
++import os
++from subprocess import Popen, PIPE
++
++if(os.path.exists('/bin/beanc')):
++	proc = Popen(['/bin/beanc'], stdout=PIPE, stderr=PIPE)
++	return_code = proc.wait()
++	if return_code == 0:
++		BC = proc.stdout.read()
++	else:
++		exit
++else:
++	File = open('/proc/user_beancounters', 'r')
++	BC = File.read()
++	File.close()
++
++search = re.finditer('(?P<resource>[a-z]+)([ ]+)(?P<held>[0-9]+)([ ]+)(?P<maxheld>[0-9]+)([ ]+)(?P<barrier>[0-9]+)([ ]+)(?P<limit>[0-9]+)([ ]+)(?P<failcnt>[0-9]+)$', BC, (re.MULTILINE|re.DOTALL))
++print "USERBEANCOUNTERS"
++for result in search:
++	counter = result.groupdict()
++	if(counter['resource'] != 'dummy'):
++		print counter['resource']
++		print counter['held']
++		print counter['maxheld']
++		print counter['barrier']
++		print counter['limit']
++		print counter['failcnt']
+
+Property changes on: scripts/userbean.py
+___________________________________________________________________
+Added: svn:executable
+   + *
+

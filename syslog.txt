@@ -1,0 +1,100 @@
+<?php
+
+function get_cache($host, $value){
+  global $dev_cache;
+  if(!isset($dev_cache[$host][$value])){
+    switch($value){
+      case 'device_id':
+        //Try by hostname
+        $dev_cache[$host]['device_id'] = dbFetchCell('SELECT `device_id` FROM devices WHERE `hostname`=\''.$host.'\' OR `sysName`=\''.$host.'\'');
+        //If failed, try by IP
+        if($dev_cache[$host]['device_id'] == null)
+          $dev_cache[$host]['device_id'] = dbFetchCell('SELECT device_id FROM ipv4_addresses AS A, ports AS I WHERE A.ipv4_address = \'' . $entry['host'].'\' AND I.interface_id = A.interface_id');
+        break;
+      case 'os':
+        $dev_cache[$host]['os'] = dbFetchCell('SELECT `os` FROM devices WHERE `device_id`='.get_cache($host, 'device_id'));
+        break;
+      case 'version':
+        $dev_cache[$host]['version'] = dbFetchCell('SELECT `version` FROM devices WHERE `device_id`='.get_cache($host, 'device_id'));
+        break;
+      case 'syslog':
+        if(file_exists('/etc/syslog-ng/syslog-ng.conf') and !strpos(file_get_contents('/etc/syslog-ng/syslog-ng.conf'), '$HOUR:$MIN:$SEC||$MSG||$PROGRAM'))
+          $dev_cache['!!syslog!!']['syslog'] = true;
+        else
+          $dev_cache['!!syslog!!']['syslog'] = false;
+        break;
+      default:
+        return null;
+    }
+  }
+  return $dev_cache[$host][$value];
+}
+
+function process_syslog ($entry) {
+  global $config;
+
+  foreach($config['syslog_filter'] as $bi)
+    if(strpos($entry['msg'], $bi) !== FALSE)
+      echo('Filtered out as '.$bi."\n".print_r($entry, true));
+    
+  $entry['device_id'] = get_cache($entry['host'], 'device_id');
+  if($entry['device_id']) {
+    $os = get_cache($entry['host'], 'os');
+    if(in_array($os, array('ios', 'iosxe', 'catos'))){
+      $matches = array();
+      if(preg_match('#%(?P<program>.*):( ?)(?P<msg>.*)#', $entry['msg'], $matches)){
+        $entry['msg'] = $matches['msg'];
+        $entry['program'] = $matches['program'];
+      }
+      unset($matches);
+    }
+    //Cisco WAP200 and similar
+    elseif($os == 'linux' and get_cache($entry['host'], 'version') == 'Point'){
+      $matches = array();
+      if(preg_match('#Log: \[(?P<program>.*)\] - (?P<msg>.*)#', $entry['msg'], $matches)){
+        $entry['msg'] = $matches['msg'];
+        $entry['program'] = $matches['program'];
+      }
+      unset($matches);
+    }
+    //$PROGRAM in example config was missing for some time
+    elseif($os == 'linux' and empty($entry['program']) and get_cache('!!syslog!!', 'syslog')){
+      $entry['program'] = 'Please add $PROGRAM to your syslog config!';
+      $entry['msg'] = '<a href="http://www.observium.org/wiki/Syslog-ng_Syslog_Server">http://www.observium.org/wiki/Syslog-ng_Syslog_Server</a><br>'.$entry['msg'];
+    }
+    //Probably we are using NTsyslog...
+    //NT: <Service Control Manager;I7036;> Usluga LiveUpdate weszla w stan zatrzymania.
+    elseif($os == 'windows'){
+      $matches = array();
+      if(preg_match('#<(?P<program>.*);> (?P<msg>.*)$#', $entry['msg'], $matches)){
+        $entry['msg'] = $matches['msg'];
+        $entry['program'] = $matches['program'];
+      }
+      unset($matches);
+    }
+
+    if(!isset($entry['program'])){
+      $entry['program'] = $entry['msg'];
+      unset($entry['msg']);
+    }
+    $entry['program'] = strtoupper($entry['program']);
+    array_walk($entry, 'trim');
+    if($update)
+      dbInsert(
+        array(
+          'device_id' => $entry['device_id'],
+          'program' => $entry['program'], 
+          'facility' => $entry['facility'],
+          'priority' => $entry['priority'],
+          'level' => $entry['level'],
+          'tag' => $entry['tag'],
+          'msg' => $entry['msg'],
+          'timestamp' => $entry['timestamp']
+        ),
+        'syslog'
+      );
+    unset($os);
+  }
+}
+
+?>

@@ -1,0 +1,60 @@
+Index: includes/static-config.php
+===================================================================
+--- includes/static-config.php	(revision 2270)
++++ includes/static-config.php	(working copy)
+@@ -960,11 +960,11 @@
+ $config['year']       = time() - (365 * 24 * 60 * 60);
+ 
+ # IPMI sensor type mappings
+-$ipmi_unit['Volts']     = 'voltage';
+-$ipmi_unit['degrees C'] = 'temperature';
+-$ipmi_unit['RPM']       = 'fanspeed';
+-$ipmi_unit['Watts']     = 'power';
+-$ipmi_unit['discrete']  = '';
++$config['ipmi_unit']['Volts']     = 'voltage';
++$config['ipmi_unit']['degrees C'] = 'temperature';
++$config['ipmi_unit']['RPM']       = 'fanspeed';
++$config['ipmi_unit']['Watts']     = 'power';
++$config['ipmi_unit']['discrete']  = '';
+ 
+ ## INCLUDE THE VMWARE DEFINITION FILE.
+ require_once("vmware_guestid.inc.php");
+Index: includes/discovery/ipmi.inc.php
+===================================================================
+--- includes/discovery/ipmi.inc.php	(revision 2270)
++++ includes/discovery/ipmi.inc.php	(working copy)
+@@ -1,7 +1,5 @@
+ <?php
+ 
+-global $ipmi_unit;
+-
+ ## IPMI
+ if ($ipmi['host'] = get_dev_attrib($device,'ipmi_hostname'))
+ {
+@@ -19,9 +17,9 @@
+     # BB +1.1V IOH     | 1.089      | Volts      | ok    | na        | 1.027     | 1.054     | 1.146     | 1.177     | na
+     list($desc,$current,$unit,$state,$low_nonrecoverable,$low_limit,$low_warn,$high_warn,$high_limit,$high_nonrecoverable) = explode('|',$sensor);
+     $index++;
+-    if (trim($current) != "na" && $ipmi_unit[trim($unit)])
++    if (trim($current) != "na" && $config['ipmi_unit'][trim($unit)])
+     {
+-      discover_sensor($valid['sensor'], $ipmi_unit[trim($unit)], $device, trim($desc), $index, 'ipmi', trim($desc), '1', '1',
++      discover_sensor($valid['sensor'], $config['ipmi_unit'][trim($unit)], $device, trim($desc), $index, 'ipmi', trim($desc), '1', '1',
+         (trim($low_limit) == 'na' ? NULL : trim($low_limit)), (trim($low_warn) == 'na' ? NULL : trim($low_warn)),
+         (trim($high_warn) == 'na' ? NULL : trim($high_warn)), (trim($high_limit) == 'na' ? NULL : trim($high_limit)),
+         $current, 'ipmi');
+Index: includes/polling/ipmi.inc.php
+===================================================================
+--- includes/polling/ipmi.inc.php	(revision 2270)
++++ includes/polling/ipmi.inc.php	(working copy)
+@@ -15,8 +15,8 @@
+   foreach (explode("\n",$results) as $row)
+   {
+     list($desc,$value,$type,$status) = explode(',',$row);
+-    $ipmi_sensor[$desc][$ipmi_unit[$type]]['value'] = $value;
+-    $ipmi_sensor[$desc][$ipmi_unit[$type]]['unit'] = $type;
++    $ipmi_sensor[$desc][$config['ipmi_unit'][$type]]['value'] = $value;
++    $ipmi_sensor[$desc][$config['ipmi_unit'][$type]]['unit'] = $type;
+   }
+ 
+   while ($ipmisensors = mysql_fetch_assoc($ipmi_data))

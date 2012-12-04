@@ -1,0 +1,19 @@
+Index: includes/polling/ports.inc.php
+===================================================================
+--- includes/polling/ports.inc.php	(revision 2199)
++++ includes/polling/ports.inc.php	(working copy)
+@@ -164,6 +164,14 @@
+       $this_port['ifDuplex'] = $this_port['dot3StatsDuplexStatus'];
+     }
+ 
++    if($device['os'] == 'catos')
++    {
++      if(empty($this_port['ifAlias']))
++      {
++        $this_port['ifAlias'] = $this_port['portName'];
++      }
++    }
++
+     ### Update IF-MIB data
+     foreach ($data_oids as $oid)
+     {
