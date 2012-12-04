@@ -9,3 +9,4 @@ Most of them has been merged to upstream, but some are just hacks for old or low
 * nut.diff - NUT UPS monitoring over SNMP
 * syslog.diff - repairs log parsing when using NTsyslog on Windows or Cisco WAP200 access points
 * userbean.diff - adds OpenVZ pooling 
+* pooler.diff - patch enabling pooler concurency 
